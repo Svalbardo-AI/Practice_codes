@@ -1,25 +1,49 @@
 import torch
-import torch.nn as nn
 import numpy as np
 
 
 class Model:
     def __init__(self, x_train, y_train, nodes_layer_1=5120):
+        self.x = torch.tensor(x_train,dtype=torch.float)
+        self.y = torch.tensor(y_train,dtype=torch.float)
         self.row_x, self.line_x = x_train.shape
-        self.layer_1 = torch.tensor((self.line_x, nodes_layer_1),dtype=torch.float)
-        self.b_1 = torch.tensor(nodes_layer_1,dtype=torch.float)
+        self.layer_1 = torch.randn((self.line_x, nodes_layer_1),dtype=torch.float, requires_grad=True)
+        self.b_1 = torch.randn(nodes_layer_1,dtype=torch.float, requires_grad=True)
 
-        self.layer_2 = torch.tensor((nodes_layer_1, 1),dtype=torch.float)
-        self.b_2 = torch.tensor(1,dtype=torch.float)
+        self.layer_2 = torch.randn((nodes_layer_1, 1),dtype=torch.float, requires_grad=True)
+        self.b_2 = torch.randn(1,dtype=torch.float, requires_grad=True)
 
+        self.losses = []
 
-        print(self.row_x,self.line_x,sep=',')
+    def fit(self, alpha=0.01, steps=10):
+        x = self.x
+        y = self.y
 
-    def fit(self, alpha=0.01, steps=1000):
-        pass
+        for i in range(steps):
+            y_hidden = torch.tanh(torch.matmul(x,self.layer_1)+self.b_1)
+            y_predict = torch.tanh(torch.matmul(y_hidden,self.layer_2)+self.b_2)
+            loss = torch.var(y-y_predict)
+            self.losses.append(loss.data.numpy())
+
+            loss.backward()
+
+            self.layer_1.data -= alpha * self.layer_1.grad
+            self.b_1.data -= alpha * self.b_1.grad
+            self.layer_2.data -= alpha * self.layer_2.grad
+            self.b_2.data -= alpha * self.b_2.grad
+
+            self.layer_1.grad.data.zero_()
+            self.b_1.grad.data.zero_()
+            self.layer_2.grad.data.zero_()
+            self.b_2.grad.data.zero_()
 
     def predict(self, x_predict):
-        pass
+        x = torch.tensor(x_predict,dtype=torch.float)
+
+        y_hidden = torch.tanh(torch.matmul(x,self.layer_1)+self.b_1)
+        y_predict = torch.tanh(torch.matmul(y_hidden,self.layer_2)+self.b_2)
+
+        print(y_predict)
 
 
 if __name__ == '__main__':
@@ -36,14 +60,14 @@ if __name__ == '__main__':
          ])
     y = np.array(
         [1,
-         0,
-         0,
+         -1,
+         -1,
          1,
          1,
          1,
-         0,
-         0,
-         0])
+         -1,
+         -1,
+         -1])
     x_test = np.array(
         [[171.8, 62.01],
          [-169.2, -61.28],
